@@ -1,0 +1,8 @@
+{application, macula_testkit, [
+    {description, "In-memory test support for macula consumers: a drop-in loopback pool (mem_macula) for hermetic pub/sub tests"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [kernel, stdlib]},
+    {modules, []},
+    {licenses, ["Apache-2.0"]}
+]}.

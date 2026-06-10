@@ -3,23 +3,31 @@
 In-memory test support for **macula** consumers. Run the real macula pub/sub
 stack in-process, with no QUIC, no certificates, and no station.
 
-It provides two things:
+It provides:
 
-1. **A loopback transport** (`mem_macula`): an in-memory implementation of the
-   existing `macula_net_transport` behaviour. The real peering, routing, and
-   pub/sub run unchanged on top; only the bytes-on-the-wire layer is swapped for
-   in-process message passing.
-2. **A harness + assertions**: stand up an N-node in-memory mesh, publish, and
+1. **A drop-in loopback pool** (`mem_macula`): a gen_server that speaks the
+   `macula_client` pool protocol, so `macula:publish(Pool, ...)` /
+   `macula:subscribe(Pool, ...)` work **unchanged** against an in-memory mesh.
+   A publish on one pool reaches subscribers on any pool in the cluster.
+2. **A harness + assertions** (planned): stand up an N-node in-memory mesh and
    assert delivery, so any macula consumer can test its mesh behaviour fast.
 
 It mirrors the command-side pattern: `evoq -> mem-evoq -> evoq-testkit` becomes
 `macula -> macula-testkit (mem_macula) -> consumers`.
 
-> The loopback transport is kept as a distinct module (`mem_macula`) from the
-> assertion helpers on purpose: if it ever earns non-test reuse (a real
-> same-host loopback transport for dev), it lifts cleanly into its own
-> `mem-macula` package, exactly as `mem-evoq` is a real in-memory event store,
-> not only a test tool.
+> The pool is the real seam, not the transport plugin. The SDK pub/sub path is
+> hardcoded to QUIC below the pool (`macula_peering_conn`), so an in-memory
+> `macula_net_transport` would not make `macula:publish/subscribe` work; the
+> pool gen_server protocol is where the in-memory swap lives. See the proposal
+> for the full finding.
+
+```erlang
+{ok, #{pools := [A, B]} = Cluster} = mem_macula:cluster(2),
+{ok, _Ref} = macula:subscribe(B, Realm, Topic, self()),
+ok = macula:publish(A, Realm, Topic, Fact),
+%% self() receives {macula_event, _, Topic, Fact, _}
+ok = mem_macula:stop(Cluster).
+```
 
 ## Status
 
