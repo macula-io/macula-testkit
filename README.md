@@ -33,7 +33,7 @@ ok = mem_macula:stop(Cluster).
 
 **Proposal stage.** Design lives in
 [proposals/PROPOSAL_MACULA_TESTKIT.md](proposals/PROPOSAL_MACULA_TESTKIT.md).
-Companion: [`hecate-services/hecate-testkit`](https://codeberg.org/hecate-services/hecate-testkit)
+Companion: [`hecate-services/hecate-testkit`](https://github.com/hecate-services/hecate-testkit)
 composes this into the hecate service-boot path.
 
 ## License

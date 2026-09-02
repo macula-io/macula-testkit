@@ -123,4 +123,4 @@ Deferred (separate, larger): a peering transport seam so a loopback can run the
 real routing stack (full-fidelity routing/dedup tests).
 
 See the companion proposal in
-[`hecate-services/hecate-testkit`](https://codeberg.org/hecate-services/hecate-testkit/src/branch/main/proposals/PROPOSAL_HECATE_TESTKIT.md).
+[`hecate-services/hecate-testkit`](https://github.com/hecate-services/hecate-testkit/blob/main/proposals/PROPOSAL_HECATE_TESTKIT.md).
