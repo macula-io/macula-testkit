@@ -1,0 +1,63 @@
+# Structural lint, EUnit and dialyzer, on every pull request and push to main.
+#
+# THE SUITE DRIVES THE REAL MACULA FACADE (test profile) against the in-memory
+# pools, so a green run means `macula:publish/subscribe' still work unchanged
+# over mem_macula on the macula release the test profile names. That is the
+# whole promise of this library, and the only thing that keeps it true when
+# macula's pool protocol moves.
+#
+# THE TOOLCHAIN IS THE IMAGE, pinned by its dated tag AND digest, the same one
+# every macula-services gate runs in (OTP 28.4.3, rebar3, Rust for macula's
+# NIFs). The toolchain step refuses any other release.
+#
+# NOTHING THAT CAN CONTAIN A MODULE IS CACHED; rebar.lock is gitignored, so
+# every run resolves deps fresh. Only the hex package cache is kept.
+
+name: lint-and-test
+
+on:
+  pull_request:
+    paths-ignore: ['**.md', 'proposals/**', 'LICENSE']
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'proposals/**', 'LICENSE']
+  workflow_dispatch:
+
+concurrency:
+  group: lint-and-test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: lint + eunit + dialyzer (OTP 28.4.3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container:
+      image: ghcr.io/macula-io/macula-ci-otp:20260923-1347@sha256:b2260d084a3d3c5e0b74932c4ee052a0cadfddddb6587d5d2214873e6bb06330
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify the toolchain is the one we think it is
+        run: |
+          rebar3 version
+          erl -noshell -eval '
+            Otp = string:trim(element(2, file:read_file(filename:join([code:root_dir(), "releases", erlang:system_info(otp_release), "OTP_VERSION"])))),
+            io:format("OTP ~s~n", [Otp]),
+            case Otp of
+                <<"28.4.3">> -> halt(0);
+                _            -> halt(1)
+            end.'
+
+      - name: Cache the hex package cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/rebar3/hex
+          key: rebar3-hex-${{ hashFiles('rebar.config') }}
+          restore-keys: rebar3-hex-
+
+      - run: rebar3 lint
+      - run: rebar3 eunit
+      - run: rebar3 dialyzer

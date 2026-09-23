@@ -4,5 +4,8 @@
     {registered, []},
     {applications, [kernel, stdlib]},
     {modules, []},
-    {licenses, ["Apache-2.0"]}
+    {licenses, ["Apache-2.0"]},
+    {links, [{"GitHub", "https://github.com/macula-io/macula-testkit"}]},
+    %% What the hex package carries: rebar3_hex reads this, not rebar.config.
+    {files, ["src", "rebar.config", "README.md", "CHANGELOG.md", "LICENSE"]}
 ]}.

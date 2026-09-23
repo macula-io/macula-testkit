@@ -3,14 +3,12 @@
 In-memory test support for **macula** consumers. Run the real macula pub/sub
 stack in-process, with no QUIC, no certificates, and no station.
 
-It provides:
+It provides a **drop-in loopback pool** (`mem_macula`): a gen_server that
+speaks the `macula_client` pool protocol, so `macula:publish(Pool, ...)` and
+`macula:subscribe(Pool, ...)` work **unchanged** against an in-memory mesh. A
+publish on one pool reaches subscribers on any pool in the cluster.
 
-1. **A drop-in loopback pool** (`mem_macula`): a gen_server that speaks the
-   `macula_client` pool protocol, so `macula:publish(Pool, ...)` /
-   `macula:subscribe(Pool, ...)` work **unchanged** against an in-memory mesh.
-   A publish on one pool reaches subscribers on any pool in the cluster.
-2. **A harness + assertions** (planned): stand up an N-node in-memory mesh and
-   assert delivery, so any macula consumer can test its mesh behaviour fast.
+Pub/sub only. RPC, advertise and streaming answer `{error, unsupported}`.
 
 It mirrors the command-side pattern: `evoq -> mem-evoq -> evoq-testkit` becomes
 `macula -> macula-testkit (mem_macula) -> consumers`.
@@ -29,12 +27,22 @@ ok = macula:publish(A, Realm, Topic, Fact),
 ok = mem_macula:stop(Cluster).
 ```
 
+## Install
+
+The library has no dependencies; bring your own macula (12.x), usually in the
+test profile:
+
+```erlang
+{profiles, [{test, [{deps, [{macula_testkit, "~> 0.1"}]}]}]}.
+```
+
 ## Status
 
-**Proposal stage.** Design lives in
-[proposals/PROPOSAL_MACULA_TESTKIT.md](proposals/PROPOSAL_MACULA_TESTKIT.md).
-Companion: [`hecate-services/hecate-testkit`](https://github.com/hecate-services/hecate-testkit)
-composes this into the hecate service-boot path.
+Pub/sub is proved against the real macula 12 facade by this repo's suite.
+The design and the finding behind the pool seam are in
+[PROPOSAL_MACULA_TESTKIT.md](https://github.com/macula-io/macula-testkit/blob/main/proposals/PROPOSAL_MACULA_TESTKIT.md).
+`macula-services/mcl-testkit` composes this into the `mcl_om` service-boot
+path for the mcl-* services.
 
 ## License
 

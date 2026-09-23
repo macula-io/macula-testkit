@@ -2,7 +2,7 @@
 %%%
 %%% Holds every subscription across all pools in the cluster and fans a publish
 %%% out to the matching subscribers, reproducing the macula pub/sub contract:
-%%% subscribers receive `{macula_event, SubRef, Topic, Payload, Meta}`. A
+%%% subscribers receive `{macula_event, SubRef, Topic, Payload, Meta}'. A
 %%% publish on one pool reaches subscribers registered through any pool, which
 %%% is what gives the cluster mesh-broadcast semantics with no QUIC and no
 %%% station.
