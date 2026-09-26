@@ -27,13 +27,31 @@ ok = macula:publish(A, Realm, Topic, Fact),
 ok = mem_macula:stop(Cluster).
 ```
 
-## Install
+## Skips are failures: `cth_skip_is_failure`
 
-The library has no dependencies; bring your own macula (12.x), usually in the
-test profile:
+`rebar3 ct` exits 0 when a case skips itself, so a suite whose tests never ran
+reads as green. This Common Test hook turns every skip nobody allowed into a
+failure. Switch it on in `rebar.config`, and allow each wanted skip with the
+reason it is safe:
 
 ```erlang
-{profiles, [{test, [{deps, [{macula_testkit, "~> 0.1"}]}]}]}.
+{ct_opts, [{ct_hooks, [{cth_skip_is_failure,
+    [{allow, [{my_SUITE, a_case, "why skipping it here is safe"},
+              {dist_SUITE, '*', "needs distribution; run by ct_dist.sh"}]}]}]}]}.
+```
+
+The second element names the case, or `'*'` for any skip in that suite,
+including its `init_per_suite` and `init_per_group`. An allowance without a
+reason stops the run before it starts. The hook needs only OTP's
+`common_test`.
+
+## Install
+
+The library has no dependencies; bring your own macula (12.x) for `mem_macula`,
+usually in the test profile:
+
+```erlang
+{profiles, [{test, [{deps, [{macula_testkit, "~> 0.2"}]}]}]}.
 ```
 
 ## Status

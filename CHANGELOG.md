@@ -5,7 +5,21 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - unreleased
+## [0.2.0] - 2026-09-26
+
+### Added
+
+- `cth_skip_is_failure`: a Common Test hook that turns every skip nobody
+  allowed into a failure. `rebar3 ct` exits 0 when a case skips itself
+  (`{skip, Reason}` from the case, `init_per_testcase`, `init_per_group` or
+  `init_per_suite`), so a suite whose tests never ran read as green
+  (macula#43). With the hook the case fails, or its group or suite is auto
+  skipped, and rebar3 exits 1. A wanted skip is allowed per suite and case
+  (or `'*'` for the whole suite) with its reason; an allowance without a
+  reason stops the run from starting. Proved by running fixture suites
+  through `ct:run_test/1`.
+
+## [0.1.0] - 2026-09-23
 
 The first release on hex.
 

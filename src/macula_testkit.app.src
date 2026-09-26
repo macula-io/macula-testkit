@@ -1,6 +1,6 @@
 {application, macula_testkit, [
-    {description, "In-memory test support for macula consumers: a drop-in loopback pool (mem_macula) for hermetic pub/sub tests"},
-    {vsn, "0.1.0"},
+    {description, "In-memory test support for macula consumers: a drop-in loopback pool (mem_macula) for hermetic pub/sub tests, and a Common Test hook that fails unallowed skips"},
+    {vsn, "0.2.0"},
     {registered, []},
     {applications, [kernel, stdlib]},
     {modules, []},
