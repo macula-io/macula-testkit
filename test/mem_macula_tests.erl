@@ -1,8 +1,8 @@
 %%% @doc Spike: prove a mem_macula pool is a drop-in for a real macula pool.
 %%%
 %%% These drive the REAL macula facade (`macula:publish/4`, `macula:subscribe/4`)
-%%% against in-memory pools. If they pass, a consumer (a hecate service, DroneX)
-%%% can run its full pub/sub over mem_macula with no station, no QUIC, no certs,
+%%% against in-memory pools. If they pass, a consumer (an mcl-om service) can
+%%% run its full pub/sub over mem_macula with no station, no QUIC, no certs,
 %%% and no code change.
 -module(mem_macula_tests).
 -include_lib("eunit/include/eunit.hrl").

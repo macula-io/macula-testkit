@@ -1,6 +1,6 @@
 # Proposal: macula-testkit
 
-**Status:** Spike complete (loopback proven) &nbsp;·&nbsp; **Date:** 2026-06-10 &nbsp;·&nbsp; **First consumer:** hecate-dronex (via hecate-testkit)
+**Status:** Spike complete (loopback proven) &nbsp;·&nbsp; **Date:** 2026-06-10 &nbsp;·&nbsp; **Consumer:** mcl-testkit
 
 ## 1. Problem
 
@@ -9,11 +9,6 @@ realm, and certificate. "Did my service publish the right fact, and did a
 subscriber on another node receive it?" requires standing up real infrastructure
 over QUIC. So the integration that matters most (facts crossing the mesh) has no
 fast, hermetic test.
-
-This blocks, concretely, the hecate-dronex over-mesh loop: `observe_remote_id`
-publishes `airspace.contact_observed`, `fuse_airspace` consumes it and publishes
-`airspace.track_confirmed`, `query_detection_quality` scores it. None of that
-fact-crossing has a test.
 
 ## 2. Principle: mirror the command-side pattern
 
@@ -97,7 +92,7 @@ speaks the pool protocol, driven by the real `macula:publish/4` /
 
 Tradeoff recorded: mem_macula does not exercise macula's own routing/dedup/bloom.
 Tests of those still need real stations or the future peering transport seam.
-For testing *consumers* (a hecate service's fact-crossing), the contract-level
+For testing *consumers* (an mcl-om service's fact-crossing), the contract-level
 drop-in is exactly right.
 
 ## 6. Scope boundaries
@@ -105,7 +100,7 @@ drop-in is exactly right.
 - **Pub/sub + RPC first** (what services use). DHT records and streaming come
   later, behind the same transport seam.
 - Reusable by any macula consumer (mpong-bot, macula-rag, git-remote-mesh,
-  macula-mcp); it must not depend on `hecate_om`.
+  macula-mcp); it must not depend on `mcl_om`.
 
 ## 7. Next steps
 
@@ -116,11 +111,11 @@ Remaining:
 1. Round out the pool protocol where consumers need it: `unsubscribe` (done),
    `call`/`advertise` (RPC) and `status`/`links` if a consumer asserts on them.
 2. A small `macula_testkit` harness module (`cluster/1`, `assert_delivered/3`).
-3. `hecate-services/hecate-testkit` composes `mem_macula` into the
-   `hecate_om:boot` path, and the hecate-dronex over-mesh test lands on top.
+3. `macula-services/mcl-testkit` composes `mem_macula` into the `mcl_om`
+   boot path (done).
 
 Deferred (separate, larger): a peering transport seam so a loopback can run the
 real routing stack (full-fidelity routing/dedup tests).
 
-See the companion proposal in
-[`hecate-services/hecate-testkit`](https://github.com/hecate-services/hecate-testkit/blob/main/proposals/PROPOSAL_HECATE_TESTKIT.md).
+The consumer-side harness is
+[`macula-services/mcl-testkit`](https://github.com/macula-services/mcl-testkit).
