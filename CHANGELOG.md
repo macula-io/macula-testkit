@@ -5,6 +5,40 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-10-17
+
+The suite moves to macula 15 (wire 1.0), and the pool answers the two calls the
+new wire adds to the publish and subscribe paths.
+
+### Added
+
+- `mem_macula_pool` answers `{await_registration, Registration}` with `ok`.
+  macula 15 holds a subscription only once a station acknowledges it
+  (macula#12): `macula:subscribe/4,5` registers, then waits through
+  `macula_client:await_registration/4` for the station's REGISTER_ACK. This
+  pool is the station, and the subscriber is already on the mesh by then, so
+  there is nothing to wait for and nothing that can refuse. A macula 14 pool
+  never receives the call, so the clause is additive there.
+- `mem_macula_pool` answers `group_keyring` with an empty keyring. macula 15
+  asks the pool for its sealed-group keyring on every publish
+  (`macula_client:publish_checked/6`), to refuse a clear publish of a topic this
+  node holds a group for. The pool holds no groups, so the keyring it answers
+  with has no rows, `macula_group_keyring:policy/3` reads it as `none`, and the
+  publish goes out clear as it did on macula 14. Sealed groups stay out of
+  scope here, as RPC and advertise are.
+
+Without those two clauses, four of the twelve cases in this repo's suite failed
+against macula 15: every subscribing case with `{error, unsupported}` from the
+registration wait, and every publishing case with a `function_clause` inside
+`macula_group_keyring:policy/3`, which was handed that same error where it
+expects the keyring.
+
+### Changed
+
+- The test profile builds against `macula ~> 15.6`, so a green run means
+  `macula:publish/subscribe` still work unchanged over `mem_macula` on wire
+  1.0. It was `macula ~> 12.1`.
+
 ## [0.2.0] - 2026-09-26
 
 ### Added

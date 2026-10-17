@@ -8,7 +8,9 @@ speaks the `macula_client` pool protocol, so `macula:publish(Pool, ...)` and
 `macula:subscribe(Pool, ...)` work **unchanged** against an in-memory mesh. A
 publish on one pool reaches subscribers on any pool in the cluster.
 
-Pub/sub only. RPC, advertise and streaming answer `{error, unsupported}`.
+Pub/sub only. RPC, advertise and streaming answer `{error, unsupported}`, and
+a pool holds no sealed group: it answers macula 15's group-keyring ask with an
+empty one, so a publish goes out clear.
 
 It mirrors the command-side pattern: `evoq -> mem-evoq -> evoq-testkit` becomes
 `macula -> macula-testkit (mem_macula) -> consumers`.
@@ -47,16 +49,19 @@ reason stops the run before it starts. The hook needs only OTP's
 
 ## Install
 
-The library has no dependencies; bring your own macula (12.x) for `mem_macula`,
-usually in the test profile:
+The library has no dependencies; bring your own macula (15.x, wire 1.0) for
+`mem_macula`, usually in the test profile:
 
 ```erlang
-{profiles, [{test, [{deps, [{macula_testkit, "~> 0.2"}]}]}]}.
+{profiles, [{test, [{deps, [{macula_testkit, "~> 0.3"},
+                            {macula, "~> 15.6"}]}]}]}.
 ```
 
 ## Status
 
-Pub/sub is proved against the real macula 12 facade by this repo's suite.
+Pub/sub is proved against the real macula 15 (wire 1.0) facade by this repo's
+suite. The clause that answers macula 15's registration wait is additive: a
+macula 14 pool never sees that call.
 The design and the finding behind the pool seam are in
 [PROPOSAL_MACULA_TESTKIT.md](https://github.com/macula-io/macula-testkit/blob/main/proposals/PROPOSAL_MACULA_TESTKIT.md).
 `macula-services/mcl-testkit` composes this into the `mcl_om` service-boot
