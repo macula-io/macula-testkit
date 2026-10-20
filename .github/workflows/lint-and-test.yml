@@ -22,9 +22,14 @@ on:
     branches: [main]
     paths-ignore: ['**.md', 'proposals/**', 'LICENSE']
   workflow_dispatch:
+  # publish-hex.yml runs this on the tagged commit and publishes only when it
+  # is green (mcl-om#34).
+  workflow_call:
 
 concurrency:
-  group: lint-and-test-${{ github.ref }}
+  # github.workflow is the CALLER's name in a called run, so the run
+  # publish-hex calls never shares a group with this workflow's own run.
+  group: ${{ github.workflow }}-tests-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
