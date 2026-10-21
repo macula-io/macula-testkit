@@ -5,6 +5,10 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+- CI checks every Erlang block in the README and guides (`docs.yml`, macula-codebase-checks#8), on every change including doc-only ones, and `publish-hex.yml` waits on it.
+
 ## [0.3.0] - 2026-10-17
 
 The suite moves to macula 15 (wire 1.0), and the pool answers the two calls the
