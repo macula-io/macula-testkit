@@ -23,7 +23,7 @@ It mirrors the command-side pattern: `evoq -> mem-evoq -> evoq-testkit` becomes
 
 ```erlang
 {ok, #{pools := [A, B]} = Cluster} = mem_macula:cluster(2),
-{ok, _Ref} = macula:subscribe(B, Realm, Topic, self()),
+{ok, _Ref} = macula:subscribe(B, Realm, Topic, self(), #{sources => members}),
 ok = macula:publish(A, Realm, Topic, Fact),
 %% self() receives {macula_event, _, Topic, Fact, _}
 ok = mem_macula:stop(Cluster).
@@ -49,19 +49,33 @@ reason stops the run before it starts. The hook needs only OTP's
 
 ## Install
 
-The library has no dependencies; bring your own macula (15.x, wire 1.0) for
+The library has no dependencies; bring your own macula (18.x, wire 1.0) for
 `mem_macula`, usually in the test profile:
 
 ```erlang
 {profiles, [{test, [{deps, [{macula_testkit, "~> 0.3"},
-                            {macula, "~> 15.6"}]}]}]}.
+                            {macula, "~> 18.0"}]}]}]}.
 ```
 
 ## Status
 
-Pub/sub is proved against the real macula 15 (wire 1.0) facade by this repo's
-suite. The clause that answers macula 15's registration wait is additive: a
-macula 14 pool never sees that call.
+Pub/sub is proved against the real macula 18 (wire 1.0) facade by this repo's
+suite, including macula 18's rule that a subscription names its `sources`: a
+`macula:subscribe/5` without them is refused `{error, {sources, required}}`
+here as on a real pool, and a malformed one with the same `{source_class, _}`
+reason.
+
+### What the pool does not model
+
+- **Delivery is not filtered by `sources`.** The declaration is checked, but
+  every publish on the in-memory mesh reaches every subscriber of the topic,
+  whatever it declared. A test that a `{nodes, [...]}` or `{org, _}`
+  subscription keeps a stranger's events out needs a real mesh.
+- **The event's `Meta` is minimal.** `publisher` is the atom `mem`, where a
+  real pool gives the 32-byte node id that signed the publish, plus
+  `publisher_verified`, `published_at`, `publication_hash` and `expires_at`.
+  Code that reads those fields is not exercised here.
+- RPC, advertise, streaming and sealed groups answer `{error, unsupported}`.
 The design and the finding behind the pool seam are in
 [PROPOSAL_MACULA_TESTKIT.md](https://github.com/macula-io/macula-testkit/blob/main/proposals/PROPOSAL_MACULA_TESTKIT.md).
 `macula-services/mcl-testkit` composes this into the `mcl_om` service-boot

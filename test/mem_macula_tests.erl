@@ -1,6 +1,6 @@
 %%% @doc Spike: prove a mem_macula pool is a drop-in for a real macula pool.
 %%%
-%%% These drive the REAL macula facade (`macula:publish/4`, `macula:subscribe/4`)
+%%% These drive the REAL macula facade (`macula:publish/4`, `macula:subscribe/5`)
 %%% against in-memory pools. If they pass, a consumer (an mcl-om service) can
 %%% run its full pub/sub over mem_macula with no station, no QUIC, no certs,
 %%% and no code change.
@@ -15,7 +15,7 @@
 cross_node_pubsub_test() ->
     {ok, #{pools := [A, B]} = Cluster} = mem_macula:cluster(2),
     Topic = <<"airspace/leuven/contact_observed">>,
-    {ok, _Ref} = macula:subscribe(B, ?REALM, Topic, self()),
+    {ok, _Ref} = macula:subscribe(B, ?REALM, Topic, self(), #{sources => members}),
     Fact = #{fact => <<"airspace.contact_observed">>, drone => #{id => <<"bogey-1">>}},
     ok = macula:publish(A, ?REALM, Topic, Fact),
     receive
@@ -31,7 +31,7 @@ cross_node_pubsub_test() ->
 %% A subscriber hears only its own topic.
 topic_isolation_test() ->
     {ok, #{pools := [A, B]} = Cluster} = mem_macula:cluster(2),
-    {ok, _} = macula:subscribe(B, ?REALM, <<"topic/x">>, self()),
+    {ok, _} = macula:subscribe(B, ?REALM, <<"topic/x">>, self(), #{sources => members}),
     ok = macula:publish(A, ?REALM, <<"topic/y">>, #{n => 1}),
     receive
         {macula_event, _, <<"topic/y">>, _, _} -> erlang:error(unexpected_delivery)
@@ -43,7 +43,7 @@ topic_isolation_test() ->
 %% subscribe returns the documented {ok, reference()} shape.
 subscribe_returns_ref_test() ->
     {ok, #{pools := [A]} = Cluster} = mem_macula:cluster(1),
-    Result = macula:subscribe(A, ?REALM, <<"t">>, self()),
+    Result = macula:subscribe(A, ?REALM, <<"t">>, self(), #{sources => members}),
     ?assertMatch({ok, Ref} when is_reference(Ref), Result),
     ok = mem_macula:stop(Cluster).
 
@@ -55,8 +55,8 @@ fanout_to_two_pools_test() ->
     Self = self(),
     P1 = spawn_link(fun() -> relay(Self, b) end),
     P2 = spawn_link(fun() -> relay(Self, c) end),
-    {ok, _} = macula:subscribe(B, ?REALM, Topic, P1),
-    {ok, _} = macula:subscribe(C, ?REALM, Topic, P2),
+    {ok, _} = macula:subscribe(B, ?REALM, Topic, P1, #{sources => members}),
+    {ok, _} = macula:subscribe(C, ?REALM, Topic, P2, #{sources => members}),
     ok = macula:publish(A, ?REALM, Topic, #{track_id => <<"track-1">>}),
     ?assertEqual([b, c], lists:sort([recv_tag(), recv_tag()])),
     ok = mem_macula:stop(Cluster).
@@ -72,3 +72,37 @@ relay(Parent, Tag) ->
 
 recv_tag() ->
     receive {got, Tag} -> Tag after 1500 -> timeout end.
+
+%% macula 18's rule, enforced by the pool as a real pool enforces it: a
+%% subscription that names no `sources' is refused before it exists.
+a_subscription_without_sources_is_refused_test() ->
+    {ok, #{pools := [A]} = Cluster} = mem_macula:cluster(1),
+    ?assertEqual({error, {sources, required}}, macula:subscribe(A, ?REALM, <<"t">>, self(), #{})),
+    ok = mem_macula:stop(Cluster).
+
+%% Each malformed declaration gets the reason macula 18.3 gives it.
+a_malformed_sources_gets_macula_18s_reason_test() ->
+    {ok, #{pools := [A]} = Cluster} = mem_macula:cluster(1),
+    [?assertEqual({error, {source_class, Why}},
+                  macula:subscribe(A, ?REALM, <<"t">>, self(), #{sources => Sources}))
+     || {Sources, Why} <- [{{org, <<>>}, {org, invalid}},
+                           {{org, not_a_binary}, {org, invalid}},
+                           {{nodes, []}, {nodes, empty}},
+                           {{nodes, <<1:256>>}, {nodes, not_a_list}},
+                           {{nodes, [<<1:8>>]}, {nodes, not_node_ids}},
+                           {anyone, {unknown, anyone}}]],
+    ok = mem_macula:stop(Cluster).
+
+%% Every well-formed declaration is held, and the subscriber gets the event.
+every_wellformed_sources_is_held_test() ->
+    [begin
+         {ok, #{pools := [A, B]} = Cluster} = mem_macula:cluster(2),
+         Topic = <<"topic/held">>,
+         {ok, _} = macula:subscribe(B, ?REALM, Topic, self(), #{sources => Sources}),
+         ok = macula:publish(A, ?REALM, Topic, #{n => 1}),
+         receive {macula_event, _, Topic, #{n := 1}, _} -> ok
+         after 2000 -> ?assert({no_event_for, Sources} =:= ok)
+         end,
+         ok = mem_macula:stop(Cluster)
+     end
+     || Sources <- [members, open, {org, <<"mcl-x">>}, {nodes, [<<7:256>>]}]].
