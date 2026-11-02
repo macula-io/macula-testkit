@@ -7,6 +7,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- The drop-in is now proven against macula 18 (refs #2). The test profile pins `{macula, "~> 18.0"}`, so the suite drives the real macula 18.3 facade. Every subscription names its `sources` (`macula:subscribe/5`): macula 18 dropped `subscribe/4` and refuses a subscription that names none. The README install snippet and example match.
 - CI checks every Erlang block in the README and guides (`docs.yml`, macula-codebase-checks#8), on every change including doc-only ones, and `publish-hex.yml` waits on it.
 
 ## [0.3.0] - 2026-10-17

@@ -23,7 +23,7 @@ It mirrors the command-side pattern: `evoq -> mem-evoq -> evoq-testkit` becomes
 
 ```erlang
 {ok, #{pools := [A, B]} = Cluster} = mem_macula:cluster(2),
-{ok, _Ref} = macula:subscribe(B, Realm, Topic, self()),
+{ok, _Ref} = macula:subscribe(B, Realm, Topic, self(), #{sources => members}),
 ok = macula:publish(A, Realm, Topic, Fact),
 %% self() receives {macula_event, _, Topic, Fact, _}
 ok = mem_macula:stop(Cluster).
@@ -54,7 +54,7 @@ The library has no dependencies; bring your own macula (15.x, wire 1.0) for
 
 ```erlang
 {profiles, [{test, [{deps, [{macula_testkit, "~> 0.3"},
-                            {macula, "~> 15.6"}]}]}]}.
+                            {macula, "~> 18.0"}]}]}]}.
 ```
 
 ## Status

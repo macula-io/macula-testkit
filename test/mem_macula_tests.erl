@@ -1,6 +1,6 @@
 %%% @doc Spike: prove a mem_macula pool is a drop-in for a real macula pool.
 %%%
-%%% These drive the REAL macula facade (`macula:publish/4`, `macula:subscribe/4`)
+%%% These drive the REAL macula facade (`macula:publish/4`, `macula:subscribe/5`)
 %%% against in-memory pools. If they pass, a consumer (an mcl-om service) can
 %%% run its full pub/sub over mem_macula with no station, no QUIC, no certs,
 %%% and no code change.
@@ -15,7 +15,7 @@
 cross_node_pubsub_test() ->
     {ok, #{pools := [A, B]} = Cluster} = mem_macula:cluster(2),
     Topic = <<"airspace/leuven/contact_observed">>,
-    {ok, _Ref} = macula:subscribe(B, ?REALM, Topic, self()),
+    {ok, _Ref} = macula:subscribe(B, ?REALM, Topic, self(), #{sources => members}),
     Fact = #{fact => <<"airspace.contact_observed">>, drone => #{id => <<"bogey-1">>}},
     ok = macula:publish(A, ?REALM, Topic, Fact),
     receive
@@ -31,7 +31,7 @@ cross_node_pubsub_test() ->
 %% A subscriber hears only its own topic.
 topic_isolation_test() ->
     {ok, #{pools := [A, B]} = Cluster} = mem_macula:cluster(2),
-    {ok, _} = macula:subscribe(B, ?REALM, <<"topic/x">>, self()),
+    {ok, _} = macula:subscribe(B, ?REALM, <<"topic/x">>, self(), #{sources => members}),
     ok = macula:publish(A, ?REALM, <<"topic/y">>, #{n => 1}),
     receive
         {macula_event, _, <<"topic/y">>, _, _} -> erlang:error(unexpected_delivery)
@@ -43,7 +43,7 @@ topic_isolation_test() ->
 %% subscribe returns the documented {ok, reference()} shape.
 subscribe_returns_ref_test() ->
     {ok, #{pools := [A]} = Cluster} = mem_macula:cluster(1),
-    Result = macula:subscribe(A, ?REALM, <<"t">>, self()),
+    Result = macula:subscribe(A, ?REALM, <<"t">>, self(), #{sources => members}),
     ?assertMatch({ok, Ref} when is_reference(Ref), Result),
     ok = mem_macula:stop(Cluster).
 
@@ -55,8 +55,8 @@ fanout_to_two_pools_test() ->
     Self = self(),
     P1 = spawn_link(fun() -> relay(Self, b) end),
     P2 = spawn_link(fun() -> relay(Self, c) end),
-    {ok, _} = macula:subscribe(B, ?REALM, Topic, P1),
-    {ok, _} = macula:subscribe(C, ?REALM, Topic, P2),
+    {ok, _} = macula:subscribe(B, ?REALM, Topic, P1, #{sources => members}),
+    {ok, _} = macula:subscribe(C, ?REALM, Topic, P2, #{sources => members}),
     ok = macula:publish(A, ?REALM, Topic, #{track_id => <<"track-1">>}),
     ?assertEqual([b, c], lists:sort([recv_tag(), recv_tag()])),
     ok = mem_macula:stop(Cluster).

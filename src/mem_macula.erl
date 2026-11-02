@@ -2,7 +2,7 @@
 %%% drop-in replacements for real macula pools.
 %%%
 %%%   {ok, #{pools := [A, B]}} = mem_macula:cluster(2),
-%%%   {ok, _} = macula:subscribe(B, Realm, Topic, self()),
+%%%   {ok, _} = macula:subscribe(B, Realm, Topic, self(), #{sources => members}),
 %%%   ok      = macula:publish(A, Realm, Topic, Fact),
 %%%   %% self() receives {macula_event, _, Topic, Fact, _}
 %%%

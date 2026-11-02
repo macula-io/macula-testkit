@@ -44,7 +44,7 @@ handle_call({publish, Realm, Topic, Payload, _Opts}, _From, #{mesh := Mesh} = S)
     {reply, mem_macula_mesh:deliver(Mesh, Realm, Topic, Payload), S};
 handle_call({await_registration, _Registration}, _From, S) ->
     %% macula 15 (wire 1.0) holds a subscription only once a station
-    %% acknowledges it: `macula:subscribe/4,5' registers, then waits here
+    %% acknowledges it: `macula:subscribe/5' registers, then waits here
     %% through `macula_client:await_registration/4' (macula#12). This pool is
     %% the station: `{subscribe, ...}' above has already put the subscriber on
     %% the mesh, so there is nothing left to wait for and nothing that can
