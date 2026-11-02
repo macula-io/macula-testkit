@@ -72,3 +72,37 @@ relay(Parent, Tag) ->
 
 recv_tag() ->
     receive {got, Tag} -> Tag after 1500 -> timeout end.
+
+%% macula 18's rule, enforced by the pool as a real pool enforces it: a
+%% subscription that names no `sources' is refused before it exists.
+a_subscription_without_sources_is_refused_test() ->
+    {ok, #{pools := [A]} = Cluster} = mem_macula:cluster(1),
+    ?assertEqual({error, {sources, required}}, macula:subscribe(A, ?REALM, <<"t">>, self(), #{})),
+    ok = mem_macula:stop(Cluster).
+
+%% Each malformed declaration gets the reason macula 18.3 gives it.
+a_malformed_sources_gets_macula_18s_reason_test() ->
+    {ok, #{pools := [A]} = Cluster} = mem_macula:cluster(1),
+    [?assertEqual({error, {source_class, Why}},
+                  macula:subscribe(A, ?REALM, <<"t">>, self(), #{sources => Sources}))
+     || {Sources, Why} <- [{{org, <<>>}, {org, invalid}},
+                           {{org, not_a_binary}, {org, invalid}},
+                           {{nodes, []}, {nodes, empty}},
+                           {{nodes, <<1:256>>}, {nodes, not_a_list}},
+                           {{nodes, [<<1:8>>]}, {nodes, not_node_ids}},
+                           {anyone, {unknown, anyone}}]],
+    ok = mem_macula:stop(Cluster).
+
+%% Every well-formed declaration is held, and the subscriber gets the event.
+every_wellformed_sources_is_held_test() ->
+    [begin
+         {ok, #{pools := [A, B]} = Cluster} = mem_macula:cluster(2),
+         Topic = <<"topic/held">>,
+         {ok, _} = macula:subscribe(B, ?REALM, Topic, self(), #{sources => Sources}),
+         ok = macula:publish(A, ?REALM, Topic, #{n => 1}),
+         receive {macula_event, _, Topic, #{n := 1}, _} -> ok
+         after 2000 -> ?assert({no_event_for, Sources} =:= ok)
+         end,
+         ok = mem_macula:stop(Cluster)
+     end
+     || Sources <- [members, open, {org, <<"mcl-x">>}, {nodes, [<<7:256>>]}]].
